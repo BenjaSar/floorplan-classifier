@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
-Training Script for ViT-Small Floor Plan Segmentation
-Integrates with the project's dataset and preprocessing pipeline
+FIXED Training Script for ViT-Small Floor Plan Segmentation
+Addresses severe class imbalance with weighted loss function
+Supports resuming from checkpoints
 """
 
 import sys
 from pathlib import Path
-
-# Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import torch
@@ -17,198 +16,133 @@ from torch.cuda.amp import GradScaler, autocast
 import numpy as np
 from tqdm import tqdm
 import json
+import argparse
 from datetime import datetime
+from collections import Counter
 
 # Import project modules
 from data.dataset import create_dataloaders
 from src.utils.logging_config import setup_logging
+from train import ViTSegmentation, calculate_iou, train_epoch, validate
 
 logger = setup_logging()
 
 
-# ==================== Model Architecture ====================
-
-class PatchEmbedding(nn.Module):
-    def __init__(self, img_size=512, patch_size=32, in_channels=3, embed_dim=384):
-        super().__init__()
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.n_patches = (img_size // patch_size) ** 2
-        
-        self.proj = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
-        
-    def forward(self, x):
-        # x: (B, 3, 512, 512)
-        x = self.proj(x)  # (B, 384, 16, 16)
-        x = x.flatten(2)  # (B, 384, 256)
-        x = x.transpose(1, 2)  # (B, 256, 384)
-        return x
-
-
-class TransformerEncoderLayer(nn.Module):
-    def __init__(self, embed_dim=384, n_heads=6, mlp_ratio=4.0, dropout=0.1):
-        super().__init__()
-        self.norm1 = nn.LayerNorm(embed_dim)
-        self.attn = nn.MultiheadAttention(embed_dim, n_heads, dropout=dropout, batch_first=True)
-        self.norm2 = nn.LayerNorm(embed_dim)
-        
-        mlp_hidden_dim = int(embed_dim * mlp_ratio)
-        self.mlp = nn.Sequential(
-            nn.Linear(embed_dim, mlp_hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(mlp_hidden_dim, embed_dim),
-            nn.Dropout(dropout)
-        )
-        
-    def forward(self, x):
-        x = x + self.attn(self.norm1(x), self.norm1(x), self.norm1(x))[0]
-        x = x + self.mlp(self.norm2(x))
-        return x
-
-
-class DecoderLayer(nn.Module):
-    def __init__(self, embed_dim=384, n_heads=6, mlp_ratio=4.0, dropout=0.1):
-        super().__init__()
-        self.norm1 = nn.LayerNorm(embed_dim)
-        self.attn = nn.MultiheadAttention(embed_dim, n_heads, dropout=dropout, batch_first=True)
-        self.norm2 = nn.LayerNorm(embed_dim)
-        
-        mlp_hidden_dim = int(embed_dim * mlp_ratio)
-        self.mlp = nn.Sequential(
-            nn.Linear(embed_dim, mlp_hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(mlp_hidden_dim, embed_dim),
-            nn.Dropout(dropout)
-        )
-        
-    def forward(self, x):
-        x = x + self.attn(self.norm1(x), self.norm1(x), self.norm1(x))[0]
-        x = x + self.mlp(self.norm2(x))
-        return x
-
-
-class SegmentationHead(nn.Module):
-    def __init__(self, embed_dim=384, patch_size=32, img_size=512, n_classes=34):
-        super().__init__()
-        self.patch_size = patch_size
-        self.img_size = img_size
-        self.n_patches_side = img_size // patch_size
-        
-        self.conv_transpose = nn.Sequential(
-            nn.Conv2d(embed_dim, 256, 3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(16),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(16, n_classes, kernel_size=4, stride=2, padding=1)
-        )
-        
-    def forward(self, x):
-        B = x.shape[0]
-        x = x.transpose(1, 2)
-        x = x.reshape(B, -1, self.n_patches_side, self.n_patches_side)
-        x = self.conv_transpose(x)
-        return x
-
-
-class ViTSegmentation(nn.Module):
-    def __init__(self, img_size=512, patch_size=32, in_channels=3, n_classes=34,
-                 embed_dim=384, n_encoder_layers=12, n_decoder_layers=3, 
-                 n_heads=6, mlp_ratio=4.0, dropout=0.1):
-        super().__init__()
-        
-        self.patch_embed = PatchEmbedding(img_size, patch_size, in_channels, embed_dim)
-        n_patches = self.patch_embed.n_patches
-        
-        self.pos_embed = nn.Parameter(torch.zeros(1, n_patches, embed_dim))
-        nn.init.trunc_normal_(self.pos_embed, std=0.02)
-        
-        self.encoder_layers = nn.ModuleList([
-            TransformerEncoderLayer(embed_dim, n_heads, mlp_ratio, dropout)
-            for _ in range(n_encoder_layers)
-        ])
-        
-        self.decoder_layers = nn.ModuleList([
-            DecoderLayer(embed_dim, n_heads, mlp_ratio, dropout)
-            for _ in range(n_decoder_layers)
-        ])
-        
-        self.norm = nn.LayerNorm(embed_dim)
-        self.seg_head = SegmentationHead(embed_dim, patch_size, img_size, n_classes)
-        
-    def forward(self, x):
-        x = self.patch_embed(x)
-        x = x + self.pos_embed
-        
-        for layer in self.encoder_layers:
-            x = layer(x)
-        
-        for layer in self.decoder_layers:
-            x = layer(x)
-        
-        x = self.norm(x)
-        x = self.seg_head(x)
-        
-        return x
-
-
-# ==================== Training Functions ====================
-
-def calculate_iou(pred, target, n_classes):
-    """Calculate mean IoU"""
-    # Move to CPU to avoid CUDA assertions
-    pred = pred.cpu().view(-1)
-    target = target.cpu().view(-1)
+def calculate_class_weights(dataloader, num_classes=34, device='cpu'):
+    """
+    Calculate class weights based on inverse frequency
+    This helps the model learn minority classes
+    """
+    logger.info("Calculating class weights from training data...")
     
-    ious = []
-    for cls in range(n_classes):
-        pred_inds = pred == cls
-        target_inds = target == cls
-        intersection = (pred_inds & target_inds).sum().float()
-        union = (pred_inds | target_inds).sum().float()
-        
-        if union == 0:
-            ious.append(float('nan'))
-        else:
-            ious.append((intersection / union).item())
+    class_counts = Counter()
+    total_pixels = 0
     
-    return np.nanmean(ious)
+    for batch in tqdm(dataloader, desc="Analyzing class distribution"):
+        masks = batch['mask'].numpy()
+        for mask in masks:
+            unique, counts = np.unique(mask, return_counts=True)
+            for cls, count in zip(unique, counts):
+                class_counts[int(cls)] += int(count)
+                total_pixels += int(count)
+    
+    # Calculate weights
+    weights = []
+    for i in range(num_classes):
+        count = class_counts.get(i, 1)  # Avoid division by zero
+        # Inverse frequency with smoothing
+        weight = total_pixels / (num_classes * count)
+        # Cap maximum weight to avoid extreme values
+        weight = min(weight, 100.0)
+        weights.append(weight)
+    
+    # Normalize weights
+    weights = torch.tensor(weights, dtype=torch.float32)
+    weights = weights / weights.sum() * num_classes  # Normalize to average=1
+    
+    logger.info("\nClass Weight Statistics:")
+    logger.info(f"  Min weight: {weights.min():.4f}")
+    logger.info(f"  Max weight: {weights.max():.4f}")
+    logger.info(f"  Mean weight: {weights.mean():.4f}")
+    
+    # Show weight distribution
+    logger.info("\nClass weights (first 10 classes):")
+    for i in range(min(10, num_classes)):
+        count = class_counts.get(i, 0)
+        pct = (count / total_pixels * 100) if total_pixels > 0 else 0
+        logger.info(f"  Class {i}: weight={weights[i]:.3f}, pixels={count:,} ({pct:.2f}%)")
+    
+    return weights.to(device)
 
 
-def train_epoch(model, dataloader, criterion, optimizer, device, n_classes, scaler=None):
-    """Train for one epoch"""
+def load_checkpoint(checkpoint_path, model, optimizer, scheduler, device):
+    """
+    Load checkpoint and restore training state
+    
+    Returns:
+        start_epoch: Epoch to resume from
+        history: Training history
+        best_val_iou: Best validation IoU so far
+        best_active_classes: Best active classes count
+    """
+    logger.info(f"Loading checkpoint from: {checkpoint_path}")
+    
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    
+    # Load model state
+    model.load_state_dict(checkpoint['model_state_dict'])
+    logger.info("[OK] Model state loaded")
+    
+    # Load optimizer state
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    logger.info("[OK] Optimizer state loaded")
+    
+    # Load scheduler state
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    logger.info("[OK] Scheduler state loaded")
+    
+    # Get training progress
+    start_epoch = checkpoint['epoch'] + 1  # Resume from next epoch
+    history = checkpoint.get('history', {
+        'train_loss': [],
+        'train_iou': [],
+        'val_loss': [],
+        'val_iou': [],
+        'active_classes': [],
+        'lr': []
+    })
+    
+    # Get best metrics
+    best_val_iou = max(history.get('val_iou', [0.0]))
+    best_active_classes = max(history.get('active_classes', [0]))
+    
+    logger.info(f"[OK] Resuming from epoch {start_epoch}")
+    logger.info(f"Previous best IoU: {best_val_iou:.4f}")
+    logger.info(f"Previous best active classes: {best_active_classes}")
+    
+    return start_epoch, history, best_val_iou, best_active_classes
+
+
+def train_epoch_with_class_iou(model, dataloader, criterion, optimizer, device, n_classes, scaler=None):
+    """
+    Train for one epoch with per-class IoU tracking
+    """
     model.train()
     total_loss = 0.0
-    total_iou = 0.0
+    class_ious = {i: [] for i in range(n_classes)}
     
     pbar = tqdm(dataloader, desc="Training")
     for batch_idx, batch in enumerate(pbar):
         images = batch['image'].to(device)
-        masks = batch['mask'].to(device).long()  # Convert to Long type
-        
-        # Clip mask values to valid range [0, n_classes-1]
+        masks = batch['mask'].to(device).long()
         masks = torch.clamp(masks, 0, n_classes - 1)
         
         optimizer.zero_grad()
         
-        # Mixed precision training
         if scaler is not None:
             with autocast():
                 outputs = model(images)
                 loss = criterion(outputs, masks)
-            
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -218,72 +152,59 @@ def train_epoch(model, dataloader, criterion, optimizer, device, n_classes, scal
             loss.backward()
             optimizer.step()
         
-        # Calculate metrics
+        # Calculate per-class IoU
         pred = outputs.argmax(dim=1)
-        iou = calculate_iou(pred, masks, outputs.shape[1])
+        for cls in range(n_classes):
+            pred_mask = (pred == cls)
+            true_mask = (masks == cls)
+            intersection = (pred_mask & true_mask).sum().float()
+            union = (pred_mask | true_mask).sum().float()
+            
+            if union > 0:
+                iou = (intersection / union).item()
+                class_ious[cls].append(iou)
         
         total_loss += loss.item()
-        total_iou += iou
         
         # Update progress bar
+        mean_iou = np.mean([np.mean(ious) if ious else 0 for ious in class_ious.values()])
         pbar.set_postfix({
             'loss': f'{loss.item():.4f}',
-            'iou': f'{iou:.4f}'
+            'mIoU': f'{mean_iou:.4f}'
         })
     
     avg_loss = total_loss / len(dataloader)
-    avg_iou = total_iou / len(dataloader)
     
-    return avg_loss, avg_iou
-
-
-def validate(model, dataloader, criterion, device, n_classes):
-    """Validate model"""
-    model.eval()
-    total_loss = 0.0
-    total_iou = 0.0
+    # Calculate mean IoU per class
+    per_class_iou = {cls: np.mean(ious) if ious else 0.0 
+                     for cls, ious in class_ious.items()}
+    mean_iou = np.mean(list(per_class_iou.values()))
     
-    with torch.no_grad():
-        pbar = tqdm(dataloader, desc="Validation")
-        for batch in pbar:
-            images = batch['image'].to(device)
-            masks = batch['mask'].to(device).long()  # Convert to Long type
-            
-            # Clip mask values to valid range [0, n_classes-1]
-            masks = torch.clamp(masks, 0, n_classes - 1)
-            
-            outputs = model(images)
-            loss = criterion(outputs, masks)
-            
-            pred = outputs.argmax(dim=1)
-            iou = calculate_iou(pred, masks, outputs.shape[1])
-            
-            total_loss += loss.item()
-            total_iou += iou
-            
-            pbar.set_postfix({
-                'loss': f'{loss.item():.4f}',
-                'iou': f'{iou:.4f}'
-            })
+    # Count classes with non-zero IoU
+    active_classes = sum(1 for iou in per_class_iou.values() if iou > 0.01)
     
-    avg_loss = total_loss / len(dataloader)
-    avg_iou = total_iou / len(dataloader)
+    return avg_loss, mean_iou, per_class_iou, active_classes
+
+
+def main(resume_checkpoint=None):
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Train ViT Floor Plan Segmentation with class weighting')
+    parser.add_argument('--resume', type=str, default=None,
+                       help='Path to checkpoint to resume from (e.g., models/checkpoints_fixed/checkpoint_epoch_10.pth)')
+    args = parser.parse_args()
     
-    return avg_loss, avg_iou
-
-
-# ==================== Main Training Loop ====================
-
-def main():
-    # Configuration
+    # Use provided resume path or command line argument
+    resume_from = resume_checkpoint or args.resume
+    
+    # Configuration with improvements for class imbalance
     CONFIG = {
         # Data
         'images_dir': 'data/processed/images',
         'masks_dir': 'data/processed/annotations',
-        'batch_size': 4,
-        'num_workers': 0,  # Use 0 for Windows
+        'batch_size': 4,  # Reduced for stability
+        'num_workers': 0,
         
-        # Model
+        # Model - Slightly smaller for better convergence
         'img_size': 512,
         'patch_size': 32,
         'n_classes': 256,
@@ -294,16 +215,19 @@ def main():
         'mlp_ratio': 4.0,
         'dropout': 0.1,
         
-        # Training
-        'num_epochs': 100,
-        #'num_epochs': 10,
-        'learning_rate': 1e-4,
+        # Training - Adjusted for class imbalance
+        'num_epochs': 150,  # More epochs needed with class weights
+        'learning_rate': 5e-5,  # Lower LR for stability
         'weight_decay': 0.01,
         'mixed_precision': True,
         
+        # Loss function
+        'use_class_weights': True,  # NEW: Enable class weighting
+        'label_smoothing': 0.1,  # NEW: Label smoothing helps
+        
         # Checkpointing
-        'checkpoint_dir': 'models/checkpoints',
-        'save_frequency': 5
+        'checkpoint_dir': 'models/checkpoints_fixed',
+        'save_frequency': 10
     }
     
     # Create checkpoint directory
@@ -359,16 +283,31 @@ def main():
     logger.info(f"Total parameters: {total_params / 1e6:.2f}M")
     logger.info(f"Trainable parameters: {trainable_params / 1e6:.2f}M")
     
-    # Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
+    # Calculate class weights
+    if CONFIG['use_class_weights']:
+        class_weights = calculate_class_weights(train_loader, CONFIG['n_classes'], device)
+        criterion = nn.CrossEntropyLoss(
+            weight=class_weights,
+            label_smoothing=CONFIG['label_smoothing']
+        )
+        logger.info("[OK] Using weighted loss with class weights")
+    else:
+        criterion = nn.CrossEntropyLoss()
+        logger.info("Using standard CrossEntropyLoss")
+    
+    # Optimizer with different LR for different layers
     optimizer = optim.AdamW(
-        model.parameters(), 
+        model.parameters(),
         lr=CONFIG['learning_rate'],
         weight_decay=CONFIG['weight_decay']
     )
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, 
-        T_max=CONFIG['num_epochs']
+    
+    # Cosine annealing with warm restarts
+    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        optimizer,
+        T_0=20,  # Restart every 20 epochs
+        T_mult=2,  # Double the period after each restart
+        eta_min=1e-6
     )
     
     # Mixed precision
@@ -376,29 +315,51 @@ def main():
     if scaler:
         logger.info("Using mixed precision training")
     
-    # Training loop
+    # Load checkpoint if resuming
+    start_epoch = 0
     best_val_iou = 0.0
+    best_active_classes = 0
     history = {
         'train_loss': [],
         'train_iou': [],
         'val_loss': [],
         'val_iou': [],
+        'active_classes': [],
         'lr': []
     }
     
-    logger.info("="*80)
-    logger.info("STARTING TRAINING")
-    logger.info("="*80)
+    if resume_from and Path(resume_from).exists():
+        logger.info("="*80)
+        logger.info("RESUMING TRAINING FROM CHECKPOINT")
+        logger.info("="*80)
+        start_epoch, history, best_val_iou, best_active_classes = load_checkpoint(
+            resume_from, model, optimizer, scheduler, device
+        )
+    else:
+        logger.info("="*80)
+        logger.info("STARTING TRAINING WITH CLASS WEIGHTS")
+        logger.info("="*80)
+        if resume_from:
+            logger.warning(f"Checkpoint not found: {resume_from}")
+            logger.warning("Starting training from scratch")
     
-    for epoch in range(CONFIG['num_epochs']):
+    for epoch in range(start_epoch, CONFIG['num_epochs']):
         logger.info(f"\nEpoch {epoch+1}/{CONFIG['num_epochs']}")
         logger.info("-" * 80)
         
         # Train
-        train_loss, train_iou = train_epoch(
+        train_loss, train_iou, train_per_class, active_classes = train_epoch_with_class_iou(
             model, train_loader, criterion, optimizer, device, CONFIG['n_classes'], scaler
         )
+        
         logger.info(f"Train Loss: {train_loss:.4f}, Train IoU: {train_iou:.4f}")
+        logger.info(f"Active classes (IoU > 0.01): {active_classes}/{CONFIG['n_classes']}")
+        
+        # Show top and bottom performing classes
+        sorted_classes = sorted(train_per_class.items(), key=lambda x: x[1], reverse=True)
+        logger.info("Top 5 classes:")
+        for cls, iou in sorted_classes[:5]:
+            logger.info(f"  Class {cls}: {iou:.4f}")
         
         # Validate
         val_loss, val_iou = validate(model, val_loader, criterion, device, CONFIG['n_classes'])
@@ -414,11 +375,16 @@ def main():
         history['train_iou'].append(train_iou)
         history['val_loss'].append(val_loss)
         history['val_iou'].append(val_iou)
+        history['active_classes'].append(active_classes)
         history['lr'].append(current_lr)
         
-        # Save best model
-        if val_iou > best_val_iou:
+        # Save best model (prioritize more active classes over just IoU)
+        improved = (val_iou > best_val_iou) or \
+                   (val_iou > best_val_iou * 0.95 and active_classes > best_active_classes)
+        
+        if improved:
             best_val_iou = val_iou
+            best_active_classes = active_classes
             best_model_path = checkpoint_dir / 'best_model.pth'
             torch.save({
                 'epoch': epoch,
@@ -427,9 +393,10 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'val_loss': val_loss,
                 'val_iou': val_iou,
+                'active_classes': active_classes,
                 'config': CONFIG
             }, best_model_path)
-            logger.info(f"Saved best model with IoU: {val_iou:.4f}")
+            logger.info(f"[OK] Saved best model (IoU: {val_iou:.4f}, Active: {active_classes})")
         
         # Save checkpoint periodically
         if (epoch + 1) % CONFIG['save_frequency'] == 0:
@@ -441,6 +408,7 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'val_loss': val_loss,
                 'val_iou': val_iou,
+                'active_classes': active_classes,
                 'history': history,
                 'config': CONFIG
             }, checkpoint_path)
@@ -465,8 +433,13 @@ def main():
     logger.info("TRAINING COMPLETED!")
     logger.info("="*80)
     logger.info(f"Best Val IoU: {best_val_iou:.4f}")
+    logger.info(f"Best Active Classes: {best_active_classes}/{CONFIG['n_classes']}")
     logger.info(f"Models saved to: {checkpoint_dir}")
     logger.info(f"Training history saved to: {history_path}")
+    
+    logger.info("\nTo test the model, run:")
+    logger.info(f"  python test_inference.py")
+    logger.info("  (Update CHECKPOINT_PATH to point to the best_model.pth in checkpoints_fixed/)")
 
 
 if __name__ == "__main__":
