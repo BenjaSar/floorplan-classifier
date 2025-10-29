@@ -2,6 +2,7 @@
 """
 FIXED Training Script for ViT-Small Floor Plan Segmentation
 Addresses severe class imbalance with weighted loss function
+Supports resuming from checkpoints
 """
 
 import sys
@@ -15,6 +16,7 @@ from torch.cuda.amp import GradScaler, autocast
 import numpy as np
 from tqdm import tqdm
 import json
+import argparse
 from datetime import datetime
 from collections import Counter
 
@@ -71,6 +73,54 @@ def calculate_class_weights(dataloader, num_classes=34, device='cpu'):
         logger.info(f"  Class {i}: weight={weights[i]:.3f}, pixels={count:,} ({pct:.2f}%)")
     
     return weights.to(device)
+
+
+def load_checkpoint(checkpoint_path, model, optimizer, scheduler, device):
+    """
+    Load checkpoint and restore training state
+    
+    Returns:
+        start_epoch: Epoch to resume from
+        history: Training history
+        best_val_iou: Best validation IoU so far
+        best_active_classes: Best active classes count
+    """
+    logger.info(f"Loading checkpoint from: {checkpoint_path}")
+    
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    
+    # Load model state
+    model.load_state_dict(checkpoint['model_state_dict'])
+    logger.info("[OK] Model state loaded")
+    
+    # Load optimizer state
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    logger.info("[OK] Optimizer state loaded")
+    
+    # Load scheduler state
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    logger.info("[OK] Scheduler state loaded")
+    
+    # Get training progress
+    start_epoch = checkpoint['epoch'] + 1  # Resume from next epoch
+    history = checkpoint.get('history', {
+        'train_loss': [],
+        'train_iou': [],
+        'val_loss': [],
+        'val_iou': [],
+        'active_classes': [],
+        'lr': []
+    })
+    
+    # Get best metrics
+    best_val_iou = max(history.get('val_iou', [0.0]))
+    best_active_classes = max(history.get('active_classes', [0]))
+    
+    logger.info(f"[OK] Resuming from epoch {start_epoch}")
+    logger.info(f"Previous best IoU: {best_val_iou:.4f}")
+    logger.info(f"Previous best active classes: {best_active_classes}")
+    
+    return start_epoch, history, best_val_iou, best_active_classes
 
 
 def train_epoch_with_class_iou(model, dataloader, criterion, optimizer, device, n_classes, scaler=None):
@@ -136,7 +186,16 @@ def train_epoch_with_class_iou(model, dataloader, criterion, optimizer, device, 
     return avg_loss, mean_iou, per_class_iou, active_classes
 
 
-def main():
+def main(resume_checkpoint=None):
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Train ViT Floor Plan Segmentation with class weighting')
+    parser.add_argument('--resume', type=str, default=None,
+                       help='Path to checkpoint to resume from (e.g., models/checkpoints_fixed/checkpoint_epoch_10.pth)')
+    args = parser.parse_args()
+    
+    # Use provided resume path or command line argument
+    resume_from = resume_checkpoint or args.resume
+    
     # Configuration with improvements for class imbalance
     CONFIG = {
         # Data
@@ -256,7 +315,8 @@ def main():
     if scaler:
         logger.info("Using mixed precision training")
     
-    # Training loop
+    # Load checkpoint if resuming
+    start_epoch = 0
     best_val_iou = 0.0
     best_active_classes = 0
     history = {
@@ -268,11 +328,22 @@ def main():
         'lr': []
     }
     
-    logger.info("="*80)
-    logger.info("STARTING TRAINING WITH CLASS WEIGHTS")
-    logger.info("="*80)
+    if resume_from and Path(resume_from).exists():
+        logger.info("="*80)
+        logger.info("RESUMING TRAINING FROM CHECKPOINT")
+        logger.info("="*80)
+        start_epoch, history, best_val_iou, best_active_classes = load_checkpoint(
+            resume_from, model, optimizer, scheduler, device
+        )
+    else:
+        logger.info("="*80)
+        logger.info("STARTING TRAINING WITH CLASS WEIGHTS")
+        logger.info("="*80)
+        if resume_from:
+            logger.warning(f"Checkpoint not found: {resume_from}")
+            logger.warning("Starting training from scratch")
     
-    for epoch in range(CONFIG['num_epochs']):
+    for epoch in range(start_epoch, CONFIG['num_epochs']):
         logger.info(f"\nEpoch {epoch+1}/{CONFIG['num_epochs']}")
         logger.info("-" * 80)
         
