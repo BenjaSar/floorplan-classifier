@@ -513,7 +513,7 @@ If you use this code in your research, please cite:
 ```bibtex
 @software{floorplan_vit_classifier,
   title={Floor Plan Vision Transformer Classifier},
-  author={Your Name},
+  author={Grupo 3 VpC},
   year={2025},
   url={https://github.com/yourusername/floorplan-vit-classifier}
 }
@@ -540,7 +540,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions or issues:
 
-- **Email**: your.email@example.com
 - **GitHub Issues**: [Create an issue](https://github.com/yourusername/floorplan-vit-classifier/issues)
 - **Discussion**: [GitHub Discussions](https://github.com/yourusername/floorplan-vit-classifier/discussions)
 
