@@ -104,6 +104,8 @@ models/checkpoints/*.pt
 models/checkpoints/*.ckpt
 models/*.pth
 models/*.pt
+models/*.ckpt
+models/checkpoints_fixed/*.pth
 *.safetensors
 
 # Keep config files in models
