@@ -315,5 +315,7 @@ configs/override_*.yaml
 dataloader_visualization.png
 *.visualization.png
 
-# Exclude large output directories but keep structure
-# (directories will be created automatically by scripts)
+# ==============================================================================
+# Preprocessed images
+# ==============================================================================
+**/data/processed/**/
