@@ -126,7 +126,7 @@ def load_checkpoint(checkpoint_path, model, optimizer, scheduler, device):
     return start_epoch, history, best_val_iou, best_active_classes
 
 
-def train_epoch_with_class_iou(model, dataloader, criterion, optimizer, device, n_classes, scaler=None):
+def train_epoch_with_class_iou(model, dataloader, criterion, optimizer, device, n_classes, config, scaler=None):
     """
     Train for one epoch with per-class IoU tracking
     """
@@ -149,9 +149,9 @@ def train_epoch_with_class_iou(model, dataloader, criterion, optimizer, device, 
             scaler.scale(loss).backward()
             
             # NEW: Gradient clipping for stability
-            if CONFIG['gradient_clip'] > 0:
+            if config['gradient_clip'] > 0:
                 scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), CONFIG['gradient_clip'])
+                torch.nn.utils.clip_grad_norm_(model.parameters(), config['gradient_clip'])
             
             scaler.step(optimizer)
             scaler.update()
@@ -161,13 +161,13 @@ def train_epoch_with_class_iou(model, dataloader, criterion, optimizer, device, 
             loss.backward()
             
             # NEW: Gradient clipping
-            if CONFIG['gradient_clip'] > 0:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), CONFIG['gradient_clip'])
+            if config['gradient_clip'] > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), config['gradient_clip'])
             
             optimizer.step()
         
         # NEW: Log metrics every N batches
-        if batch_idx % CONFIG['log_frequency'] == 0 and batch_idx > 0:
+        if batch_idx % config['log_frequency'] == 0 and batch_idx > 0:
             logger.info(f"  Batch {batch_idx}/{len(dataloader)}: Loss={loss.item():.4f}")
         
         # Calculate per-class IoU
@@ -234,12 +234,12 @@ def main(resume_checkpoint=None):
         'dropout': 0.15,  # OPTIMIZED: Increased for better regularization
         
         # Training - OPTIMIZED for faster convergence
-        'num_epochs': 120,  # OPTIMIZED: More epochs with improved LR schedule
+        'num_epochs': 60,  # OPTIMIZED: More epochs with improved LR schedule
         'learning_rate': 1.5e-4,  # OPTIMIZED: Higher LR for faster learning
         'weight_decay': 0.005,  # OPTIMIZED: Reduced for stability
-        'warmup_steps': 1000,  # NEW: Warmup for stable training start
-        'warmup_epochs': 2,  # NEW: Warmup for 2 epochs
-        'gradient_clip': 1.0,  # NEW: Gradient clipping for stability
+        'warmup_steps': 1000,  #Warmup for stable training start
+        'warmup_epochs': 2,  #  Warmup for 2 epochs
+        'gradient_clip': 1.0,  # Gradient clipping for stability
         'mixed_precision': True,
         
         # Loss function
@@ -396,7 +396,7 @@ def main(resume_checkpoint=None):
         
         # Train
         train_loss, train_iou, train_per_class, active_classes = train_epoch_with_class_iou(
-            model, train_loader, criterion, optimizer, device, CONFIG['n_classes'], scaler
+            model, train_loader, criterion, optimizer, device, CONFIG['n_classes'], CONFIG, scaler
         )
         
         logger.info(f"Train Loss: {train_loss:.4f}, Train IoU: {train_iou:.4f}")
