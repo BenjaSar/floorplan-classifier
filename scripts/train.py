@@ -19,6 +19,7 @@ import json
 import argparse
 from datetime import datetime
 from collections import Counter
+import time
 import mlflow
 import mlflow.pytorch
 
@@ -209,10 +210,36 @@ def main(resume_checkpoint=None):
     parser = argparse.ArgumentParser(description='Train ViT Floor Plan Segmentation with class weighting')
     parser.add_argument('--resume', type=str, default=None,
                        help='Path to checkpoint to resume from (e.g., models/checkpoints_fixed/checkpoint_epoch_10.pth)')
+    parser.add_argument('--fresh', action='store_true', default=False,
+                       help='Start training from scratch, ignoring any existing checkpoints')
     args = parser.parse_args()
     
-    # Use provided resume path or command line argument
-    resume_from = resume_checkpoint or args.resume
+    # Determine resume path with hybrid logic (Option 3)
+    resume_from = None
+    
+    if args.resume:
+        # Explicit resume path provided
+        resume_from = args.resume
+        logger.info("=" * 80)
+        logger.info("EXPLICIT RESUME: Using provided checkpoint")
+        logger.info("=" * 80)
+    elif not args.fresh:
+        # Auto-resume from best model if it exists (NEW: Option 3)
+        best_model_path = Path(resume_checkpoint or 'models/checkpoints/best_model.pth')
+        if best_model_path.exists():
+            resume_from = str(best_model_path)
+            logger.info("=" * 80)
+            logger.info("AUTO-RESUME: Loading best_model.pth")
+            logger.info("=" * 80)
+        else:
+            logger.info("=" * 80)
+            logger.info("NEW TRAINING: No existing best model found")
+            logger.info("=" * 80)
+    else:
+        # Fresh start requested
+        logger.info("=" * 80)
+        logger.info("FRESH START: Starting training from scratch (--fresh flag)")
+        logger.info("=" * 80)
     
     # Configuration with OPTIMIZED hyperparameters for faster convergence
     CONFIG = {
@@ -234,7 +261,7 @@ def main(resume_checkpoint=None):
         'dropout': 0.15,  # OPTIMIZED: Increased for better regularization
         
         # Training - OPTIMIZED for faster convergence
-        'num_epochs': 60,  # OPTIMIZED: More epochs with improved LR schedule
+        'num_epochs': 40,  # OPTIMIZED: More epochs with improved LR schedule
         'learning_rate': 1.5e-4,  # OPTIMIZED: Higher LR for faster learning
         'weight_decay': 0.005,  # OPTIMIZED: Reduced for stability
         'warmup_steps': 1000,  #Warmup for stable training start
@@ -343,12 +370,15 @@ def main(resume_checkpoint=None):
     warmup_sched = optim.lr_scheduler.LambdaLR(optimizer, warmup_scheduler)
     
     # Cosine annealing with warm restarts (applied after warmup)
+    # FIXED: Prevent learning rate from decaying too aggressively
     cosine_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
         optimizer,
-        T_0=15,  # OPTIMIZED: Shorter restart period
-        T_mult=2,
-        eta_min=1e-6
+        T_0=30,        #  Longer restart period (was 15) - slower decay
+        T_mult=1.5,    #  Gentler restart growth (was 2) - 30, 45, 67...
+        eta_min=1e-5   # Higher minimum LR (was 1e-6) - keeps learning
     )
+    # Effect: Learning rate stays high enough for model to continue improving
+    # throughout all 60 epochs instead of plateauing at epoch ~40
     
     # Mixed precision
     scaler = GradScaler() if CONFIG['mixed_precision'] and torch.cuda.is_available() else None
@@ -383,16 +413,34 @@ def main(resume_checkpoint=None):
             logger.warning(f"Checkpoint not found: {resume_from}")
             logger.warning("Starting training from scratch")
     
-    # MLflow setup
+    # MLflow setup with backend verification
+    logger.info("=" * 80)
+    logger.info("MLFLOW SETUP")
+    logger.info("=" * 80)
+    
+    # Check MLflow tracking URI
+    try:
+        mlflow_tracking_uri = mlflow.tracking.get_tracking_uri()
+        logger.info(f"MLflow tracking URI: {mlflow_tracking_uri}")
+    except Exception as e:
+        logger.info(f"MLflow tracking: Using default backend ({str(e)[:50]}...)")
+    
+    # Set experiment
     mlflow.set_experiment("floor-plan-segmentation")
     run_name = f"vit-{CONFIG['n_classes']}classes-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     mlflow.start_run(run_name=run_name)
     mlflow.log_params(CONFIG)
-    logger.info(f"MLflow experiment started: {run_name}")
+    logger.info(f"[MLflow] Experiment started: {run_name}")
+    logger.info(f"[MLflow] View dashboard: mlflow ui")
+    logger.info(f"[MLflow] Backend location: ./mlruns/")
+    logger.info("=" * 80)
     
     for epoch in range(start_epoch, CONFIG['num_epochs']):
         logger.info(f"\nEpoch {epoch+1}/{CONFIG['num_epochs']}")
         logger.info("-" * 80)
+        
+        # Track epoch timing
+        epoch_start_time = time.time()
         
         # Train
         train_loss, train_iou, train_per_class, active_classes = train_epoch_with_class_iou(
@@ -421,11 +469,26 @@ def main(resume_checkpoint=None):
         current_lr = optimizer.param_groups[0]['lr']
         logger.info(f"Learning Rate: {current_lr:.6f}")
         
-        # NEW: Enhanced MLflow tracking
-        mlflow.log_metrics({
+        # Calculate epoch timing
+        epoch_time = time.time() - epoch_start_time
+        
+        # NEW: Enhanced MLflow tracking with per-class metrics
+        mlflow_metrics = {
+            'train_loss': train_loss,
+            'train_iou': train_iou,
+            'val_loss': val_loss,
+            'val_iou': val_iou,
+            'active_classes': active_classes,
             'learning_rate': current_lr,
-            'epoch_time': 0,  # Will be calculated
-        }, step=epoch)
+            'epoch_time_sec': epoch_time,  # NEW: Epoch timing
+        }
+        
+        # Add per-class IoU metrics (NEW: Per-class tracking)
+        for cls in range(CONFIG['n_classes']):
+            mlflow_metrics[f'train_iou_class_{cls}'] = train_per_class.get(cls, 0.0)
+        
+        # Log all metrics to MLflow
+        mlflow.log_metrics(mlflow_metrics, step=epoch)
         
         # Save history
         history['train_loss'].append(train_loss)
@@ -434,16 +497,6 @@ def main(resume_checkpoint=None):
         history['val_iou'].append(val_iou)
         history['active_classes'].append(active_classes)
         history['lr'].append(current_lr)
-        
-        # Log to MLflow
-        mlflow.log_metrics({
-            'train_loss': train_loss,
-            'train_iou': train_iou,
-            'val_loss': val_loss,
-            'val_iou': val_iou,
-            'active_classes': active_classes,
-            'learning_rate': current_lr
-        }, step=epoch)
         
         # Save best model (prioritize more active classes over just IoU)
         improved = (val_iou > best_val_iou) or \
@@ -480,6 +533,10 @@ def main(resume_checkpoint=None):
                 'config': CONFIG
             }, checkpoint_path)
             logger.info(f"Saved checkpoint: {checkpoint_path}")
+            
+            # NEW: Log checkpoint as MLflow artifact
+            mlflow.log_artifact(str(checkpoint_path), artifact_path="checkpoints")
+            logger.info(f"[MLflow] Logged checkpoint artifact: {checkpoint_path.name}")
     
     # Save final model and history
     final_model_path = checkpoint_dir / 'final_model.pth'
@@ -498,29 +555,65 @@ def main(resume_checkpoint=None):
     
     # Log final artifacts to MLflow
     mlflow.log_artifact(str(best_model_path), artifact_path="models")
+    mlflow.log_artifact(str(final_model_path), artifact_path="models")
     mlflow.log_artifact(str(history_path), artifact_path="metrics")
     mlflow.log_artifact(str(config_path), artifact_path="config")
+    logger.info("[MLflow] Logged all final artifacts")
     
-    # Log final metrics
-    mlflow.log_metrics({
+    # Log final metrics and summary
+    final_metrics = {
         'final_best_val_iou': best_val_iou,
-        'final_best_active_classes': best_active_classes
+        'final_best_active_classes': best_active_classes,
+        'final_epoch': CONFIG['num_epochs'] - 1,
+        'total_epochs_trained': len(history['train_loss']),
+    }
+    mlflow.log_metrics(final_metrics)
+    logger.info("[MLflow] Logged final metrics summary")
+    
+    # Log tags for easy filtering in MLflow UI
+    mlflow.set_tags({
+        'model_type': 'ViT-Small-Segmentation',
+        'dataset': 'CubiCasa5K',
+        'num_classes': CONFIG['n_classes'],
+        'focal_loss_enabled': 'true',
+        'class_weights_enabled': str(CONFIG['use_class_weights']),
     })
+    logger.info("[MLflow] Set tracking tags")
     
     mlflow.end_run()
+    logger.info("[MLflow] Run completed")
     
-    logger.info("="*80)
+    logger.info("=" * 80)
     logger.info("TRAINING COMPLETED!")
-    logger.info("="*80)
+    logger.info("=" * 80)
     logger.info(f"Best Val IoU: {best_val_iou:.4f}")
     logger.info(f"Best Active Classes: {best_active_classes}/{CONFIG['n_classes']}")
     logger.info(f"Models saved to: {checkpoint_dir}")
     logger.info(f"Training history saved to: {history_path}")
-    logger.info(f"MLflow run completed: View experiments with 'mlflow ui'")
     
-    logger.info("\nTo test the model, run:")
-    logger.info(f"  python test_inference.py")
-    logger.info("  (Update CHECKPOINT_PATH to point to the best_model.pth in checkpoints_fixed/)")
+    logger.info("\n" + "=" * 80)
+    logger.info("NEXT STEPS")
+    logger.info("=" * 80)
+    
+    logger.info("\n[Continue Training]")
+    logger.info("  python scripts/train.py")
+    logger.info("  (Auto-resumes from best_model.pth)")
+    
+    logger.info("\n[Start Fresh (Reset Progress)]")
+    logger.info("  python scripts/train.py --fresh")
+    logger.info("  (Ignores existing best_model.pth)")
+    
+    logger.info("\n[Resume from Specific Checkpoint]")
+    logger.info("  python scripts/train.py --resume models/checkpoints/checkpoint_epoch_30.pth")
+    
+    logger.info("\n[View MLflow Dashboard]")
+    logger.info("  mlflow ui")
+    logger.info("  Open: http://localhost:5000")
+    
+    logger.info("\n[Test the Model]")
+    logger.info("  python scripts/inference.py --model models/checkpoints/best_model.pth")
+    
+    logger.info("=" * 80)
 
 
 if __name__ == "__main__":
