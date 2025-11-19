@@ -262,7 +262,7 @@ def main(resume_checkpoint=None):
         'dropout': 0.25,  # Increased from 0.15 to prevent overfitting to background
         
         # Training - FIXED for better convergence
-        'num_epochs': 50,  # Increased from 40 for more training time
+        'num_epochs': 5,  # Increased from 40 for more training time
         'learning_rate': 1.5e-4,  # Kept: Working well
         'weight_decay': 0.005,  # Kept: Stable
         'warmup_steps': 1000,  # Warmup for stable training start
@@ -316,7 +316,7 @@ def main(resume_checkpoint=None):
     logger.info(f"Val batches: {len(val_loader)}")
     logger.info(f"Test batches: {len(test_loader)}")
     
-    # Create hybrid ViT-CNN model (FIXED: Better for pixel-level segmentation)
+    # Create hybrid ViT-CNN model (Better for pixel-level segmentation)
     logger.info("Creating Hybrid ViT-CNN Segmentation Model...")
     logger.info("  - ViT Encoder: Global context with 12 layers")
     logger.info("  - CNN Decoder: Progressive upsampling with skip connections")
@@ -324,7 +324,7 @@ def main(resume_checkpoint=None):
     logger.info("  - Skip Connections: Enabled (FIXED: preserves spatial information)")
     model = HybridViTCNNSegmentation(
         img_size=CONFIG['img_size'],
-        patch_size=16,  # FIXED: Smaller patches for finer details (was 32)
+        patch_size=16,  # Smaller patches for finer details (was 32)
         in_channels=3,
         n_classes=CONFIG['n_classes'],
         embed_dim=CONFIG['embed_dim'],
@@ -375,7 +375,7 @@ def main(resume_checkpoint=None):
     warmup_sched = optim.lr_scheduler.LambdaLR(optimizer, warmup_scheduler)
     
     # Cosine annealing with warm restarts (applied after warmup)
-    # FIXED: Prevent learning rate from decaying too aggressively
+    # Prevent learning rate from decaying too aggressively
     cosine_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
         optimizer,
         T_0=50,        # Increased from 30 to 50 - slower decay to prevent regression
