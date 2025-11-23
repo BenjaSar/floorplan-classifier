@@ -89,12 +89,12 @@ The model segments floor plans into 12 semantic classes:
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/floorplan-vit-classifier.git
-cd floorplan-vit-classifier/VpC3
+git clone https://github.com/yourusername/floorplan-classifier.git
+cd floorplan-classifier
 
 # Create conda environment
 conda env create -f environment.yml
-conda activate floorplan_vit
+conda activate floorplan
 
 # Verify installation
 python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
@@ -104,8 +104,8 @@ python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda
 
 ```bash
 # Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements/base.txt
@@ -129,7 +129,7 @@ python -c "import torch; print(torch.cuda.is_available())"
 After setup, your data directory should look like:
 
 ```
-VpC3/data/
+floorplan-classifier/data/
 ├── cubicasa5k_converted/       # SVG converter output
 │   ├── images/                 # Original floor plan images
 │   └── annotations/            # Semantic segmentation masks (PNG)
@@ -145,7 +145,7 @@ The complete workflow from raw data to training:
 ### 1. **SVG Conversion** (Convert SVG annotations to semantic masks)
 
 ```bash
-cd VpC3
+cd floorplan-classifier
 python src/data/svg_to_png_converter.py --test 1  # Test with 1 sample
 
 # Full conversion
@@ -187,7 +187,7 @@ Results saved to: `outputs/inference_results/`
 ### Option A: Full Pipeline (Recommended)
 
 ```bash
-cd VpC3
+cd floorplan-classifier
 
 # 1. Convert SVG annotations to semantic masks
 python src/data/svg_to_png_converter.py
@@ -208,7 +208,7 @@ python scripts/test_inference.py
 ### Option B: Quick Test
 
 ```bash
-cd VpC3
+cd floorplan-classifier
 
 # Convert only 5 samples for testing
 python src/data/svg_to_png_converter.py --test 5
@@ -281,7 +281,7 @@ python scripts/monitor_training.py
 **Option 3: Training Logs**
 ```bash
 # Terminal 3: Watch logs in real-time
-tail -f VpC3/logs/*.log
+tail -f floorplan-classifier/logs/*.log
 # Check GPU usage
 nvidia-smi -l 1  # Update every 1 second
 ```
@@ -325,44 +325,43 @@ Tags for easy filtering:
 ## 📁 Project Structure
 
 ```
-floorplan-vit-classifier/
-└── VpC3/
-    ├── src/
-    │   ├── data/
-    │   │   ├── svg_to_png_converter.py    # ✨ SVG to semantic mask conversion
-    │   │   ├── dataset.py                 # PyTorch dataset classes
-    │   │   └── preprocessing.py           # Data preprocessing utilities
-    │   ├── models/
-    │   │   └── vit_segmentation.py       # ViT architecture
-    │   ├── eda/
-    │   │   ├── eda_analysis.py           # Exploratory data analysis
-    │   │   └── visualization.py          # Visualization tools
-    │   ├── inference/
-    │   │   └── inference_results/        # Prediction outputs
-    │   └── utils/
-    │       └── logging_config.py         # Logging utilities
-    ├── scripts/
-    │   ├── train.py                      # Main training script
-    │   ├── run_preprocessing.py          # Preprocessing pipeline
-    │   ├── run_dataset.py                # Dataset testing
-    │   ├── test_inference.py             # Inference script
-    │   └── diagnose_model.py             # Model diagnostics
-    ├── data/
-    │   ├── cubicasa5k_converted/         # Converted SVG → PNG
-    │   └── processed/                    # Preprocessed dataset
-    ├── models/
-    │   └── checkpoints_fixed/            # Model checkpoints
-    ├── outputs/
-    │   └── eda/                          # EDA analysis outputs
-    ├── configs/
-    │   ├── config.yaml                   # Main configuration
-    │   └── class_mapping_256_to_34.json  # Legacy mapping
-    ├── requirements/
-    │   ├── base.txt                      # Core dependencies
-    │   ├── dev.txt                       # Development dependencies
-    │   └── prod.txt                      # Production dependencies
-    ├── environment.yml                   # Conda environment
-    └── README.md                         # This file
+floorplan-classifier/
+  ├── src/
+  │   ├── data/
+  │   │   ├── svg_to_png_converter.py    # SVG to semantic mask conversion
+  │   │   ├── dataset.py                 # PyTorch dataset classes
+  │   │   └── preprocessing.py           # Data preprocessing utilities
+  │   ├── models/
+  │   │   └── vit_segmentation.py       # ViT architecture
+  │   ├── eda/
+  │   │   ├── eda_analysis.py           # Exploratory data analysis
+  │   │   └── visualization.py          # Visualization tools
+  │   ├── inference/
+  │   │   └── inference_results/        # Prediction outputs
+  │   └── utils/
+  │       └── logging_config.py         # Logging utilities
+  ├── scripts/
+  │   ├── train.py                      # Main training script
+  │   ├── run_preprocessing.py          # Preprocessing pipeline
+  │   ├── run_dataset.py                # Dataset testing
+  │   ├── test_inference.py             # Inference script
+  │   └── diagnose_model.py             # Model diagnostics
+  ├── data/
+  │   ├── cubicasa5k_converted/         # Converted SVG → PNG
+  │   └── processed/                    # Preprocessed dataset
+  ├── models/
+  │   └── checkpoints_fixed/            # Model checkpoints
+  ├── outputs/
+  │   └── eda/                          # EDA analysis outputs
+  ├── configs/
+  │   ├── config.yaml                   # Main configuration
+  │   └── class_mapping_256_to_34.json  # Legacy mapping
+  ├── requirements/
+  │   ├── base.txt                      # Core dependencies
+  │   ├── dev.txt                       # Development dependencies
+  │   └── prod.txt                      # Production dependencies
+  ├── environment.yml                   # Conda environment
+  └── README.md                         # This file
 ```
 
 ## ⚙️ Configuration
@@ -560,8 +559,8 @@ CONFIG['batch_size'] = 2  # or 1
 #### 2. Import Errors
 
 ```bash
-# Ensure running from VpC3 directory
-cd VpC3
+# Ensure running from project directory
+cd floorplan-classifier
 
 # Add to PYTHONPATH
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"  # Linux/Mac

@@ -202,7 +202,7 @@ def visualize_samples(images_dir, masks_dir, num_samples=5):
         axes[idx, 1].axis('off')
     
     plt.tight_layout()
-    output_path = Path('VpC3/outputs/data_diagnostic_samples.png')
+    output_path = Path('floorplan-classifier/outputs/data_diagnostic_samples.png')
     output_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path, dpi=100, bbox_inches='tight')
     print(f"✓ Visualization saved to: {output_path}")

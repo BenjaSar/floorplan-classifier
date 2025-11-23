@@ -1,4 +1,4 @@
-name: villa-floorplan
+name: floorplan
 channels:
   - pytorch
   - nvidia
