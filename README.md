@@ -14,8 +14,10 @@ We currently maintain two main approaches for floor plan segmentation:
 | :--- | :--- |
 | **[Vision Transformer (ViT)](https://github.com/BenjaSar/VpC3/tree/vit_final)** | ✅ **Completed** | 
 | **[UNet++ Improved](https://github.com/BenjaSar/VpC3/tree/unet_plus_plus_improved)** | ✅ **Completed** | 
-<!--🛠 **In Development**--->
+| **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/VpC3/tree/swin_maskrcnn)** | 🛠 **In Development** |
 
+
+For full, detailed descriptions of each model (design, training recipes, and branch-specific implementation notes) see the [Architectures Description](#architectures-description).
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1-red.svg)](https://pytorch.org/)
@@ -26,7 +28,6 @@ We currently maintain two main approaches for floor plan segmentation:
 - [Navigation & Usage](#-navigation--usage)
 - [Architectures Description](#architectures-description)
 - [Dataset Setup](#-dataset-setup)
-- [Usage](#-usage)
 - [Project Structure](#-project-structure)
 - [Configuration](#-configuration)
 - [Results](#-results)
@@ -38,8 +39,72 @@ We currently maintain two main approaches for floor plan segmentation:
 - [Contact](#-contact)
 - [Roadmap](#-roadmap)
 
+## 🚀 Navigation & Usage
+
+To work with a specific architecture, clone the repository and switch to the corresponding branch:
+
+### 1. Clone repository
+```bash
+# Clone the repository
+git clone https://github.com/BenjaSar/VpC3.git
+cd VpC3
+```
+### 2. Environment and Dependencies 
+```bash
+# Create virtual environment
+python -m venv floorplan_vit
+source floorplan_vit/bin/activate  # On Windows: floorplan_vit\Scripts\activate
+
+# Install dependencies
+pip install -r requirements/base.txt
+
+# Verify installation
+python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
+```
+#### Alternative: Conda Environment
+```bash
+# Create conda environment
+conda env create -f environment.yml -y
+conda activate villa-floorplan
+
+# Verify installation
+python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
+```
+### 2. Dataset: Download & Preprocessing
+```bash
+# Download dataset from Kaggle
+python scripts/download_dataset.py
+
+# Run preprocessing pipeline
+python run_preprocessing.py
+
+# Or use the dataset script
+python run_dataset.py
+```
+### 3. Select the model
+#### To use the Vision Transformer:
+```bash
+git checkout vit_final
+# You will now see the detailed README and training scripts for ViT
+```
+#### To use the UNet++:
+```bash
+git checkout unet_plus_plus_improved
+# Switches to the improved convolutional architecture code
+```
+#### To use the Swin + Mask R-CNN:
+```bash
+git checkout swin_maskrcnn
+# Switches to the code for instance segmentation (Requires separate branch creation)
+```
+### 4. _Optional: Exploratory Data Analysis (EDA)_
+Read full guidelines [here](#-exploratory-data-analysis-eda).
+
+### 5. Inference
+For training, evaluation and on-demand inference, check README for every model/branch.
+
 <!-- 
-## 📦 Requirements
+## 📦 Requirements _(Preprocessing + EDA)_
 
 - **Python**: 3.12+
 - **CUDA**: 11.8+ (for GPU training)
@@ -55,41 +120,26 @@ We currently maintain two main approaches for floor plan segmentation:
 - MLflow, Optuna, Hydra
 - See `requirements/base.txt` for complete list -->
 
-## 🚀 Navigation & Usage
-
-To work with a specific architecture, clone the repository and switch to the corresponding branch:
-
-### 1. Clone the repository
-```bash
-git clone [https://github.com/BenjaSar/VpC3.git](https://github.com/BenjaSar/VpC3.git)
-cd VpC3
-```
-### 2. Select the model
-#### To use the Vision Transformer:
-```bash
-git checkout vit_final
-# You will now see the detailed README and training scripts for ViT
-```
-#### To use the UNet++:
-```bash
-git checkout unet_plus_plus_improved
-# Switches to the improved convolutional architecture code
-```
-
 ## Architectures Description
 
-### **[Vision Transformer (ViT)](https://github.com/BenjaSar/VpC3/tree/vit_final)** <!-- - *Global Approach* -->
+### **[Vision Transformer (ViT)](https://github.com/BenjaSar/VpC3/tree/vit_final)**
 Uses a custom *ViT-Small* architecture with an Encoder-Decoder design.
 - Splits image into 16x16 patches (embedding).
 - **Encoder:** 12 Transformer layers with Self-Attention to capture global context.
 - **Decoder:** 3 layers to recover spatial resolution.
 - Segments **34 classes** (walls, rooms, openings).
 
-### **[UNet++ Improved](https://github.com/BenjaSar/VpC3/tree/unet_plus_plus_improved)** <!-- - *Local & Edge Approach* -->
+### **[UNet++ Improved](https://github.com/BenjaSar/VpC3/tree/unet_plus_plus_improved)**
 An evolution of U-Net with dense, nested connections (*Nested Skip Pathways*).
-- Reduces the semantic gap between encoder and decoder feature maps.
+- **Reduces the semantic gap** between encoder and decoder feature maps.
 - Implements **Deep Supervision** to improve gradient flow.
-- Ideal for improving edge precision on fine architectural elements. |
+- Ideal for improving edge precision on fine architectural elements.
+
+### **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/VpC3/tree/swin_maskrcnn)**
+A powerful instance segmentation model combining a hierarchical Vision Transformer backbone with the Mask R-CNN framework.
+- **Backbone (Swin Transformer):** Extracts multi-scale features through shifted window attention. (Source: Microsoft Research)
+- **Framework (Mask R-CNN):** Performs object detection (bounding boxes) and generates a high-quality segmentation mask for each instance of a detected class (e.g., individual rooms). (Source: Facebook AI Research)
+- Ideal for room instance segmentation and object detection (doors, windows).
 
 ## 📊 Dataset Setup
 
@@ -107,7 +157,15 @@ Exterior Door, Window, and more...
 
 ### CubiCasa5K Dataset (Recommended)
 
-1. **Download the dataset**:
+#### 1. Download the dataset
+1. From Kaggle Datasets:
+
+```bash
+# Download dataset from Kaggle
+python scripts/download_dataset.py
+```
+
+2. From CubiCasa repository:
 
 ```bash
 # Option A: Clone from GitHub
@@ -117,8 +175,7 @@ git clone https://github.com/CubiCasa/CubiCasa5k.git data/cubicasa5k_raw
 python data/convert_cubicasa_proper.py
 ```
 
-2. **Organize the dataset**:
-
+#### 2. Organize the dataset
 The expected structure:
 ```bash
 data/
@@ -133,8 +190,7 @@ data/
 │       └── ...
 ```
 
-3. **Preprocess the dataset**:
-
+#### 3. Preprocess the dataset
 ```bash
 # Run preprocessing pipeline
 python run_preprocessing.py
@@ -151,9 +207,7 @@ See [DATASET_DOWNLOAD_GUIDE.md](varios/DATASET_DOWNLOAD_GUIDE.md) for:
 - R-FID dataset
 - Custom dataset creation
 
-## 🎯 Usage
-
-### Exploratory Data Analysis (EDA)
+## 🔍 Exploratory Data Analysis (EDA)
 
 Analyze your dataset before training:
 
@@ -174,38 +228,51 @@ This generates:
 ## 📁 Project Structure
 
 ```
-floorplan-vit-classifier/
+VpC3-floorplan-classifier/
 ├── configs/
-│   └── config.yaml              # Training configuration
-├── data/
-│   ├── dataset.py               # PyTorch dataset classes
-│   ├── data.py                  # Data loading utilities
-│   ├── conversion.py            # Dataset conversion scripts
-│   └── cubicasa5k/              # Dataset directory
-├── src/
-│   ├── preprocessing.py         # Data preprocessing
-│   ├── eda/                     # Exploratory data analysis
-│   │   ├── eda_analysis.py
-│   │   └── visualization.py
-│   └── utils/
-│       └── logging_config.py    # Logging utilities
-├── models/
-│   └── checkpoints/             # Saved model checkpoints
-├── logs/                        # Training logs
-├── inference_results/           # Inference outputs
-├── requirements/
-│   ├── base.txt                 # Core dependencies
-│   ├── dev.txt                  # Development dependencies
-│   └── prod.txt                 # Production dependencies
-├── varios/
-│   ├── DATASET_DOWNLOAD_GUIDE.md
-│   └── TROUBLESHOOTING_LOW_IOU.md
-├── train.py                     # Training script
-├── test_inference.py            # Inference script
-├── run_preprocessing.py         # Preprocessing pipeline
-├── run_dataset.py               # Dataset setup
-├── initialize_project.py        # Project initialization
-└── README.md                    # This file
+├── data/                          # Dataset data
+├── diagnose_scripts/              # Diagnostic scripts
+├── doc/                           # Project documentation
+│   ├── 1. TRAINING_OPTIMIZATION   # Training notes/docs
+│   └── imgs/                      # Images for documentation/README (NEW)
+├── floorplan_vit/                 # Virtual environment
+├── logs/                          # Execution logging
+├── outputs/
+│   └── eda/                       # Outputs from Exploratory Data Analysis
+├── requirements/                  # Dependencies
+│   ├── base.txt                   # Core dependencies
+│   ├── dev.txt                    # Development dependencies
+│   └── prod.txt                   # Production dependencies
+├── scripts/                       # Utility and execution scripts
+│   ├── analyze_svg_content.py
+│   ├── download_dataset.py        # Dataset download script
+│   ├── initialize_project.py      # Project initialization
+│   ├── run_dataset.py             # Dataset setup/check
+│   └── run_preprocessing.py       # Preprocessing pipeline
+├── src/                           # Source code
+│   ├── data/                      # Dataset setup scripts
+│   │   ├── dataset.py             # PyTorch dataset classes
+│   │   ├── preprocessing.py       # Data preprocessing
+│   │   └── svg_to_png_converter.py
+│   ├── eda/                       # Exploratory Data Analysis
+│   │   ├── class_weights.json
+│   │   ├── dataset_analysis.py
+│   │   ├── eda_analysis.py        # Run EDA process
+│   │   ├── mask_classes.py
+│   │   └── visualization.py       # Generate EDA visualizations
+│   └── utils/                     # General utilities
+│       ├── class_verfication_check.py
+│       ├── focal_loss.py
+│       └── logging_config.py      # Logging utilities
+├── .env.example                   # Environment variables example
+├── .gitignore
+├── CRITERIOS_EVALUACION.MD        # Evaluation criteria document
+├── environment.yml                # Conda environment file
+├── LICENSE
+├── prediction_visualization.png   # Example output image
+├── README.md                      # This file
+├── test_image.py
+└── test_img.png
 ```
 
 ## ⚙️ Configuration
@@ -367,10 +434,14 @@ If you use this code in your research, please cite:
 ```
 
 ### Related Papers
-- **CubiCasa5K**: [CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis](https://arxiv.org/abs/1904.01920)
-- **DeiT**: [Training data-efficient image transformers](https://arxiv.org/abs/2012.12877)
-- **Vision Transformer**: [An Image is Worth 16x16 Words](https://arxiv.org/abs/2010.11929)
-- **Unet Plus Plus**: [UNet++: A Nested U-Net Architecture for Medical Image Segmentation](https://arxiv.org/abs/1807.10165)
+- **CubiCasa5K:** [«CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis»](https://arxiv.org/abs/1904.01920)
+- **DeiT:** [«Training data-efficient image transformers»](https://arxiv.org/abs/2012.12877)
+- **Vision Transformer:** [«An Image is Worth 16x16 Words»](https://arxiv.org/abs/2010.11929)
+- **Unet Plus Plus:** [«UNet++: A Nested U-Net Architecture for Medical Image Segmentation»](https://arxiv.org/abs/1807.10165)
+
+- **Swin Transformer:** [«Swin Transformer: Hierarchical Vision Transformer using Shifted Windows»](https://arxiv.org/abs/2103.14030)
+
+- **Mask R-CNN:** [«Mask R-CNN»](https://arxiv.org/abs/1703.06870)
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -387,7 +458,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For questions or issues:
 
 - **GitHub Issues**: [Create an issue](https://github.com/BenjaSar/VpC3/issues)
-<!-- - **Discussion**: [GitHub Discussions](https://github.com/BenjaSar/VpC3/discussions) -->
 
 ## 🗺️ Roadmap
 
@@ -404,6 +474,6 @@ For questions or issues:
 
 **Made with ❤️ for the computer vision and architecture communities**
 
-*Last Updated: November 20, 2025*
+*Last Updated: November 25, 2025*
 
 ![footer](doc/imgs/LogoFooter.png)
