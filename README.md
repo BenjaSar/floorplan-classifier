@@ -74,8 +74,8 @@ Exterior Door, Window, and more...
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/floorplan-vit-classifier.git
-cd floorplan-vit-classifier
+git clone https://github.com/yourusername/floorplan-classifier.git
+cd floorplan-classifier
 
 # Create conda environment
 conda env create -f environment.yml
@@ -284,7 +284,7 @@ with torch.no_grad():
 ## 📁 Project Structure
 
 ```
-floorplan-vit-classifier/
+floorplan-classifier/
 ├── configs/
 │   └── config.yaml              # Training configuration
 ├── data/
@@ -321,7 +321,7 @@ floorplan-vit-classifier/
 
 ```yaml
 project:
-  name: floorplan-vit-classifier
+  name: floorplan-classifier
   version: 0.1.0
 
 dataset:
@@ -504,7 +504,7 @@ If you use this code in your research, please cite:
   title={Floor Plan Vision Transformer Classifier},
   author={Your Name},
   year={2025},
-  url={https://github.com/yourusername/floorplan-vit-classifier}
+  url={https://github.com/yourusername/floorplan-classifier}
 }
 ```
 
@@ -530,8 +530,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For questions or issues:
 
 - **Email**: your.email@example.com
-- **GitHub Issues**: [Create an issue](https://github.com/yourusername/floorplan-vit-classifier/issues)
-- **Discussion**: [GitHub Discussions](https://github.com/yourusername/floorplan-vit-classifier/discussions)
+- **GitHub Issues**: [Create an issue](https://github.com/yourusername/floorplan-classifier/issues)
+- **Discussion**: [GitHub Discussions](https://github.com/yourusername/floorplan-classifier/discussions)
 
 ## 🗺️ Roadmap
 

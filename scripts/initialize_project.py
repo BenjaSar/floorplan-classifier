@@ -339,7 +339,7 @@ def create_training_config(project_root: Path):
     training_content = """# Training Configuration
 training:
   # General settings
-  project_name: floorplan-vit-classifier
+  project_name: floorplan-classifier
   experiment_name: vit-small-segmentation
   run_name: baseline-run
   seed: 42
