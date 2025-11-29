@@ -1,4 +1,4 @@
-![header](doc/imgs/LogoHeader.png)
+![header](docs/assets/LogoHeader.png)
 
 # Floor Plan Analysis Hub
 
@@ -477,4 +477,4 @@ For questions or issues:
 
 *Last Updated: November 25, 2025*
 
-![footer](doc/imgs/LogoFooter.png)
+![footer](docs/assets/LogoFooter.png)
