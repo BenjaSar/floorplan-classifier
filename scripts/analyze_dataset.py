@@ -127,8 +127,8 @@ def main():
     results = analyze_class_distribution(masks_dir)
     
     # Save results
-    output_file = 'VpC3/outputs/dataset_analysis.json'
-    Path('VpC3/outputs').mkdir(parents=True, exist_ok=True)
+    output_file = 'floorplan-classifier/outputs/dataset_analysis.json'
+    Path('floorplan-classifier/outputs').mkdir(parents=True, exist_ok=True)
     
     with open(output_file, 'w') as f:
         json.dump(results, f, indent=2)

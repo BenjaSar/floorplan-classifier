@@ -9,7 +9,7 @@ from pathlib import Path
 
 # Add parent directories to path for imports
 current_dir = Path(__file__).parent
-sys.path.insert(0, str(current_dir.parent.parent))  # Add VpC3 directory
+sys.path.insert(0, str(current_dir.parent.parent))  # Add floorplan-classifier directory
 sys.path.insert(0, str(current_dir.parent))  # Add src directory
 
 import torch
