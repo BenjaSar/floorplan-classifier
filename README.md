@@ -12,9 +12,10 @@ We currently maintain two main approaches for floor plan segmentation:
 
 | Model / Branch | Status |
 | :--- | :--- |
-| **[Vision Transformer (ViT)](https://github.com/BenjaSar/VpC3/tree/vit_final)** | ✅ **Completed** | 
-| **[UNet++ Improved](https://github.com/BenjaSar/VpC3/tree/unet_plus_plus_improved)** | ✅ **Completed** | 
-| **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/VpC3/tree/swin_maskrcnn)** | 🛠 **In Development** |
+| **[Vision Transformer (ViT)](https://github.com/BenjaSar/floorplan-classifier/tree/vit_classifier)** | ✅ **Completed** | 
+| **[UNet++](https://github.com/BenjaSar/floorplan-classifier/tree/unet_plus_plus)** | ✅ **Completed** | 
+| **[UNet++ Improved](https://github.com/BenjaSar/floorplan-classifier/tree/unet_plus_plus_improved)** | ✅ **Completed** | 
+| **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/floorplan-classifier/tree/swin_maskrcnn)** | 🛠 **In Development** |
 
 
 For full, detailed descriptions of each model (design, training recipes, and branch-specific implementation notes) see the [Architectures Description](#architectures-description).
@@ -46,8 +47,8 @@ To work with a specific architecture, clone the repository and switch to the cor
 ### 1. Clone repository
 ```bash
 # Clone the repository
-git clone https://github.com/BenjaSar/VpC3.git
-cd VpC3
+git clone https://github.com/BenjaSar/floorplan-classifier.git
+cd floorplan-classifier
 ```
 ### 2. Environment and Dependencies 
 ```bash
@@ -84,7 +85,7 @@ python run_dataset.py
 ### 3. Select the model
 #### To use the Vision Transformer:
 ```bash
-git checkout vit_final
+git checkout vit_classifier
 # You will now see the detailed README and training scripts for ViT
 ```
 #### To use the UNet++:
@@ -122,20 +123,20 @@ For training, evaluation and on-demand inference, check README for every model/b
 
 ## Architectures Description
 
-### **[Vision Transformer (ViT)](https://github.com/BenjaSar/VpC3/tree/vit_final)**
+### **[Vision Transformer (ViT)](https://github.com/BenjaSar/floorplan-classifier/tree/vit_classifier)**
 Uses a custom *ViT-Small* architecture with an Encoder-Decoder design.
 - Splits image into 16x16 patches (embedding).
 - **Encoder:** 12 Transformer layers with Self-Attention to capture global context.
 - **Decoder:** 3 layers to recover spatial resolution.
 - Segments **34 classes** (walls, rooms, openings).
 
-### **[UNet++ Improved](https://github.com/BenjaSar/VpC3/tree/unet_plus_plus_improved)**
+### **[UNet++ Improved](https://github.com/BenjaSar/floorplan-classifier/tree/unet_plus_plus_improved)**
 An evolution of U-Net with dense, nested connections (*Nested Skip Pathways*).
 - **Reduces the semantic gap** between encoder and decoder feature maps.
 - Implements **Deep Supervision** to improve gradient flow.
 - Ideal for improving edge precision on fine architectural elements.
 
-### **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/VpC3/tree/swin_maskrcnn)**
+### **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/floorplan-classifier/tree/swin_maskrcnn)**
 A powerful instance segmentation model combining a hierarchical Vision Transformer backbone with the Mask R-CNN framework.
 - **Backbone (Swin Transformer):** Extracts multi-scale features through shifted window attention. (Source: Microsoft Research)
 - **Framework (Mask R-CNN):** Performs object detection (bounding boxes) and generates a high-quality segmentation mask for each instance of a detected class (e.g., individual rooms). (Source: Facebook AI Research)
@@ -228,7 +229,7 @@ This generates:
 ## 📁 Project Structure
 
 ```
-VpC3-floorplan-classifier/
+floorplan-classifier-floorplan-classifier/
 ├── configs/
 ├── data/                          # Dataset data
 ├── diagnose_scripts/              # Diagnostic scripts
@@ -281,7 +282,7 @@ VpC3-floorplan-classifier/
 
 ```yaml
 project:
-  name: floorplan-vit-classifier
+  name: floorplan-classifier
   version: 0.1.0
 
 dataset:
@@ -429,7 +430,7 @@ If you use this code in your research, please cite:
   title={Floor Plan Vision Transformer Classifier},
   author={Grupo 3 VpC},
   year={2025},
-  url={https://github.com/BenjaSar/floorplan-vit-classifier}
+  url={https://github.com/BenjaSar/floorplan-classifier}
 }
 ```
 
@@ -457,7 +458,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions or issues:
 
-- **GitHub Issues**: [Create an issue](https://github.com/BenjaSar/VpC3/issues)
+- **GitHub Issues**: [Create an issue](https://github.com/BenjaSar/floorplan-classifier/issues)
 
 ## 🗺️ Roadmap
 

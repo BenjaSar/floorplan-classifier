@@ -1,4 +1,4 @@
-artifact_uri: file:///home/ubuntu/floorplan_classifier/VpC3/mlruns/408858550083544072/c784828a63be4304806e4c85f0fcdbaa/artifacts
+artifact_uri: file:///home/ubuntu/floorplan_classifier/floorplan-classifier/mlruns/408858550083544072/c784828a63be4304806e4c85f0fcdbaa/artifacts
 end_time: 1762975310978
 entry_point_name: ''
 experiment_id: '408858550083544072'

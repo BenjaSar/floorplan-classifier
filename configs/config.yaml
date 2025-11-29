@@ -1,5 +1,5 @@
 project:
-  name: floorplan-vit-classifier
+  name: floorplan-classifier
   version: 0.1.0
   description: Vision Transformer for Floor Plan Room Classification
 
