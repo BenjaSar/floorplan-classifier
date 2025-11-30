@@ -15,8 +15,7 @@ We currently maintain two main approaches for floor plan segmentation:
 | **[Vision Transformer (ViT)](https://github.com/BenjaSar/floorplan-classifier/tree/vit_classifier)** | ✅ **Completed** | 
 | **[UNet++](https://github.com/BenjaSar/floorplan-classifier/tree/unet_plus_plus)** | ✅ **Completed** | 
 | **[UNet++ Improved](https://github.com/BenjaSar/floorplan-classifier/tree/unet_plus_plus_improved)** | ✅ **Completed** | 
-| **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/floorplan-classifier/tree/swin_maskrcnn)** | 🛠 **In Development** |
-
+| **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/floorplan-classifier/tree/swin_maskrcnn)** | ✅ **Completed** |
 
 For full, detailed descriptions of each model (design, training recipes, and branch-specific implementation notes) see the [Architectures Description](#architectures-description).
 
@@ -123,20 +122,32 @@ For training, evaluation and on-demand inference, check README for every model/b
 
 ## Architectures Description
 
-### **[Vision Transformer (ViT)](https://github.com/BenjaSar/floorplan-classifier/tree/vit_classifier)**
+### 1. **[Vision Transformer (ViT)](https://github.com/BenjaSar/floorplan-classifier/tree/vit_classifier)**
 Uses a custom *ViT-Small* architecture with an Encoder-Decoder design.
 - Splits image into 16x16 patches (embedding).
 - **Encoder:** 12 Transformer layers with Self-Attention to capture global context.
 - **Decoder:** 3 layers to recover spatial resolution.
 - Segments **34 classes** (walls, rooms, openings).
 
-### **[UNet++ Improved](https://github.com/BenjaSar/floorplan-classifier/tree/unet_plus_plus_improved)**
+### 2. **UNet++ Improved**
 An evolution of U-Net with dense, nested connections (*Nested Skip Pathways*).
 - **Reduces the semantic gap** between encoder and decoder feature maps.
 - Implements **Deep Supervision** to improve gradient flow.
 - Ideal for improving edge precision on fine architectural elements.
 
-### **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/floorplan-classifier/tree/swin_maskrcnn)**
+  #### ***[2.1  Standard implementation](https://github.com/BenjaSar/floorplan-classifier/tree/unet_plus_plus)***
+  Standard implementation utilizing an EfficientNet-B0 backbone.
+  - **Balanced Efficiency:** A lightweight encoder that prioritizes faster training and inference speeds while maintaining robust performance.
+  - **Nested Connections:** Uses nested skip pathways to reduce the semantic gap between the encoder and decoder.
+  - **Deep Supervision:** Implements auxiliary loss branches to ensure stable gradient flow.
+
+  #### ***[2.2 Improved implementation](https://github.com/BenjaSar/floorplan-classifier/tree/unet_plus_plus_improved)***
+  Enhanced version upgraded with an EfficientNet-B4 backbone.
+  - **Higher Capacity:** The larger B4 encoder significantly increases the parameter count, allowing the model to capture more complex spatial features.
+  - **Fine-Grained Detail:** Specifically tuned to improve edge precision on fine architectural elements where the B0 model might underperform.
+  - **Superior Feature Extraction:** Leverages the deeper network to better distinguish between similar semantic classes.
+
+### 3. **[Swin Transformer + Mask R-CNN](https://github.com/BenjaSar/floorplan-classifier/tree/swin_maskrcnn)**
 A powerful instance segmentation model combining a hierarchical Vision Transformer backbone with the Mask R-CNN framework.
 - **Backbone (Swin Transformer):** Extracts multi-scale features through shifted window attention. (Source: Microsoft Research)
 - **Framework (Mask R-CNN):** Performs object detection (bounding boxes) and generates a high-quality segmentation mask for each instance of a detected class (e.g., individual rooms). (Source: Facebook AI Research)
@@ -349,6 +360,13 @@ On CubiCasa5K test set:
 | Pixel Accuracy | 0.85-0.90 |
 | Training Time | ~8-12 hours (RTX 3090) |
 
+### Related Papers
+- **CubiCasa5K:** [«CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis»](https://arxiv.org/abs/1904.01920)
+- **DeiT:** [«Training data-efficient image transformers»](https://arxiv.org/abs/2012.12877)
+- **Vision Transformer:** [«An Image is Worth 16x16 Words»](https://arxiv.org/abs/2010.11929)
+- **Unet Plus Plus:** [«UNet++: A Nested U-Net Architecture for Medical Image Segmentation»](https://arxiv.org/abs/1807.10165)
+- **Swin Transformer:** [«Swin Transformer: Hierarchical Vision Transformer using Shifted Windows»](https://arxiv.org/abs/2103.14030)
+- **Mask R-CNN:** [«Mask R-CNN»](https://arxiv.org/abs/1703.06870)
 
 ## 🔧 Troubleshooting
 
@@ -426,7 +444,7 @@ mypy src/
 If you use this code in your research, please cite:
 
 ```bibtex
-@software{floorplan_vit_classifier,
+@software{floorplan_classifier,
   title={Floor Plan Vision Transformer Classifier},
   author={Grupo 3 VpC},
   year={2025},
@@ -434,23 +452,16 @@ If you use this code in your research, please cite:
 }
 ```
 
-### Related Papers
-- **CubiCasa5K:** [«CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis»](https://arxiv.org/abs/1904.01920)
-- **DeiT:** [«Training data-efficient image transformers»](https://arxiv.org/abs/2012.12877)
-- **Vision Transformer:** [«An Image is Worth 16x16 Words»](https://arxiv.org/abs/2010.11929)
-- **Unet Plus Plus:** [«UNet++: A Nested U-Net Architecture for Medical Image Segmentation»](https://arxiv.org/abs/1807.10165)
-
-- **Swin Transformer:** [«Swin Transformer: Hierarchical Vision Transformer using Shifted Windows»](https://arxiv.org/abs/2103.14030)
-
-- **Mask R-CNN:** [«Mask R-CNN»](https://arxiv.org/abs/1703.06870)
-
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 
 ## 🙏 Acknowledgments
 
 - [CubiCasa5K](https://github.com/CubiCasa/CubiCasa5k) for the dataset
 - [Hugging Face Transformers](https://huggingface.co/docs/transformers) for model implementations
+- [Vision Transformer (ViT)](https://arxiv.org/abs/2010.11929)
+- [OpenCV](https://opencv.org/) for image processing
 - [PyTorch](https://pytorch.org/) for the deep learning framework
 - [MLflow](https://mlflow.org/) for experiment tracking
 
