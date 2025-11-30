@@ -1,8 +1,10 @@
 ![header](docs/assets/LogoHeader.png)
 
-# Floor Plan ViT Classifier
+# Floor Plan Analysis Hub: _UNet++_
 
-A Vision Transformer (ViT) based deep learning model for semantic segmentation of architectural floor plans. This project implements a state-of-the-art ViT architecture to classify and segment different room types and architectural elements in floor plan images.
+This implementation pairs the UNet++ architecture with a **lightweight EfficientNet-B0 encoder**. It is designed for efficiency, utilizing nested skip pathways to capture semantic details while maintaining low computational cost and fast inference speeds. Ideal for rapid experimentation and environments with limited resources.
+
+> To use other implemented architectures, see the [Implementation Index](https://github.com/BenjaSar/floorplan-classifier/blob/main/README.md) on the main branch.
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.5.1-red.svg)](https://pytorch.org/)
@@ -406,6 +408,12 @@ Training generates:
 - Learning rate schedule
 - Sample predictions
 
+## Related Papers
+- **CubiCasa5K:** [«CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis»](https://arxiv.org/abs/1904.01920)
+- **DeiT:** [«Training data-efficient image transformers»](https://arxiv.org/abs/2012.12877)
+- **Unet Plus Plus:** [«UNet++: A Nested U-Net Architecture for Medical Image Segmentation»](https://arxiv.org/abs/1807.10165)
+
+---
 ## 🔧 Troubleshooting
 
 ### Common Issues
@@ -500,19 +508,13 @@ mypy src/
 If you use this code in your research, please cite:
 
 ```bibtex
-@software{floorplan_vit_classifier,
+@software{floorplan_classifier,
   title={Floor Plan Vision Transformer Classifier},
-  author={Your Name},
+  author={Grupo 3 VpC},
   year={2025},
-  url={https://github.com/yourusername/floorplan-classifier}
+  url={https://github.com/BenjaSar/floorplan-classifier}
 }
 ```
-
-### Related Papers
-
-- **Vision Transformer**: [An Image is Worth 16x16 Words](https://arxiv.org/abs/2010.11929)
-- **CubiCasa5K**: [CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis](https://arxiv.org/abs/1904.01920)
-- **DeiT**: [Training data-efficient image transformers](https://arxiv.org/abs/2012.12877)
 
 ## 📄 License
 
@@ -522,6 +524,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [CubiCasa5K](https://github.com/CubiCasa/CubiCasa5k) for the dataset
 - [Hugging Face Transformers](https://huggingface.co/docs/transformers) for model implementations
+- [OpenCV](https://opencv.org/) for image processing
 - [PyTorch](https://pytorch.org/) for the deep learning framework
 - [MLflow](https://mlflow.org/) for experiment tracking
 
@@ -529,20 +532,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions or issues:
 
-- **Email**: your.email@example.com
-- **GitHub Issues**: [Create an issue](https://github.com/yourusername/floorplan-classifier/issues)
-- **Discussion**: [GitHub Discussions](https://github.com/yourusername/floorplan-classifier/discussions)
-
-## 🗺️ Roadmap
-
-- [ ] Add pre-trained model weights
-- [ ] Implement ViT-Base and ViT-Large variants
-- [ ] Support for additional datasets (R-FID, LIFULL)
-- [ ] Web-based inference demo
-- [ ] Docker containerization
-- [ ] Model quantization for deployment
-- [ ] Real-time inference optimization
-- [ ] Integration with architectural CAD software
+- **GitHub Issues**: [Create an issue](https://github.com/BenjaSar/floorplan-classifier/issues)
 
 ---
 
