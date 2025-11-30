@@ -1,11 +1,15 @@
-# 🏠 Room Detection with Swin Transformer + Mask R-CNN
+![header](docs/assets/LogoHeader.png)
+
+# Floor Plan Analysis Hub: _Swin Transformer + Mask R-CNN_
+
+Sistema completo de detección y segmentación de habitaciones en planos de planta usando Deep Learning.
+
+> To use other implemented architectures, see the [Implementation Index](https://github.com/BenjaSar/floorplan-classifier/blob/main/README.md) on the main branch.
 
 ![Python](https://img.shields.io/badge/Python-3.13-blue.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.9.1-red.svg)
 ![Django](https://img.shields.io/badge/Django-5.2.8-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-
-Sistema completo de detección y segmentación de habitaciones en planos de planta usando Deep Learning.
 
 ## ✨ Características
 
@@ -138,11 +142,18 @@ python train.py --epochs 100 --batch-size 4
 - **Input**: 512x512 RGB
 - **Output**: Boxes + Máscaras + Labels + Scores
 
+## Related Papers
+- **CubiCasa5K:** [«CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis»](https://arxiv.org/abs/1904.01920)
+- **DeiT:** [«Training data-efficient image transformers»](https://arxiv.org/abs/2012.12877)
+- **Swin Transformer:** [«Swin Transformer: Hierarchical Vision Transformer using Shifted Windows»](https://arxiv.org/abs/2103.14030)
+- **Mask R-CNN:** [«Mask R-CNN»](https://arxiv.org/abs/1703.06870)
+
+---
 ## 📖 Documentación
 
-- [PROYECTO_COMPLETO.md](PROYECTO_COMPLETO.md) - Documentación completa en español
-- [EMPEZAR_AQUI.md](EMPEZAR_AQUI.md) - Guía de inicio rápido
-- [INFORME_TECNICO.md](INFORME_TECNICO.md) - Análisis técnico detallado
+- [PROYECTO_COMPLETO.md](docs/PROYECTO_COMPLETO.md) - Documentación completa en español
+- [EMPEZAR_AQUI.md](docs/EMPEZAR_AQUI.md) - Guía de inicio rápido
+- [INFORME_TECNICO.md](docs/INFORME_TECNICO.md) - Análisis técnico detallado
 
 ## 🐛 Problemas Resueltos
 
@@ -161,22 +172,49 @@ python train.py --epochs 100 --batch-size 4
 - [ ] Data augmentation avanzada
 - [ ] Métricas de evaluación (mAP, IoU)
 
-## 📝 Licencia
+---
+## 📝 Citation
 
-MIT License - Ver [LICENSE](LICENSE)
+If you use this code in your research, please cite:
+
+```bibtex
+@software{floorplan_classifier,
+  title={Floor Plan Vision Transformer Classifier},
+  author={Grupo 3 VpC},
+  year={2025},
+  url={https://github.com/BenjaSar/floorplan-classifier}
+}
+```
 
 ## 👤 Autor
 
 **Jorge Cuenca** ([@Jorgecuenca1](https://github.com/Jorgecuenca1))
 
-## 🙏 Agradecimientos
+## 📄 License
 
-- Arquitectura Swin Transformer: Microsoft Research
-- Mask R-CNN Framework: Facebook AI Research
-- Formato COCO: Common Objects in Context
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [CubiCasa5K](https://github.com/CubiCasa/CubiCasa5k) for the dataset
+- [Common Objects in Context (COCO)](https://cocodataset.org/)
+- [Swin Transformer Architechture (Microsoft Research)](https://www.microsoft.com/en-us/research/blog/swin-transformer-supports-3-billion-parameter-vision-models-that-can-train-with-higher-resolution-images-for-greater-task-applicability/)
+- [Mask R-CNN Framework (Facebook AI Research)](https://github.com/facebookresearch/maskrcnn-benchmark)
+- [OpenCV](https://opencv.org/) for image processing
+- [PyTorch](https://pytorch.org/) for the deep learning framework
+- [MLflow](https://mlflow.org/) for experiment tracking
+
+
+## 📞 Contact
+
+For questions or issues:
+
+- **GitHub Issues**: [Create an issue](https://github.com/BenjaSar/floorplan-classifier/issues)
 
 ---
 
-**🎉 ¡Proyecto completo y funcional!**
+**Made with ❤️ for the architecture and computer vision communities**
 
-Desarrollado con dedicación para ser el mejor sistema de detección de habitaciones.
+*Last Updated: November 23, 2025*
+
+![footer](docs/assets/LogoFooter.png)
