@@ -2,7 +2,7 @@
 
 # Floor Plan Analysis Hub: _Swin Transformer + Mask R-CNN_
 
-Sistema completo de detección y segmentación de habitaciones en planos de planta usando Deep Learning.
+Complete system for detecting and segmenting rooms in floor plans using Deep Learning.
 
 > To use other implemented architectures, see the [Implementation Index](https://github.com/BenjaSar/floorplan-classifier/blob/main/README.md) on the main branch.
 
@@ -11,166 +11,175 @@ Sistema completo de detección y segmentación de habitaciones en planos de plan
 ![Django](https://img.shields.io/badge/Django-5.2.8-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## ✨ Características
+## ✨ Features
 
-- 🎯 **Detección precisa** de 14 tipos de habitaciones diferentes
-- 🎨 **Segmentación por máscaras** a nivel de píxel
-- 📊 **Cálculo automático de áreas** en metros cuadrados
-- 🌐 **Interfaz web Django** con visualización en tiempo real
-- 🔄 **Dataset sintético** de 500 planos generados automáticamente
-- 🚀 **Arquitectura moderna**: Swin Transformer + Mask R-CNN
+- 🎯 **Accurate detection** of 14 different room types
+- 🎨 **Pixel-level mask segmentation**
+- 📊 **Automatic area calculation** in square meters
+- 🌐 **Django web interface** with real-time visualization
+- 🔄 **Synthetic dataset** of 500 floor plans generated automatically
+- 🚀 **Modern architecture**: Swin Transformer + Mask R-CNN
 
-## 🏗️ Arquitectura
+## 🏗️ Architecture
 
 ```
 Swin Transformer (Backbone)
-    ↓
+  ↓
 Feature Pyramid Network
-    ↓
+  ↓
 Region Proposal Network
-    ↓
+  ↓
 ROI Align + Box/Mask Heads
-    ↓
-Detecciones + Máscaras + Áreas
+  ↓
+Detections + Masks + Areas
 ```
 
-## 📦 Instalación Rápida
+## 📦 Quick Installation
 
 ```bash
-# Clonar repositorio
-git clone https://github.com/Jorgecuenca1/floorplan-classifier.git
+# Clone repository
+git clone https://github.com/BenjaSar/floorplan-classifier.git
 cd floorplan-classifier
 
-# Crear entorno virtual
+# Switch to desired model branch
+git checkout swin_maskrcnn
+
+# Create virtual environment
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Instalar dependencias
+# Install dependencies
 pip install -r requirements.txt
 
-# Generar dataset sintético (500 planos)
+# Generate synthetic dataset (500 plans)
 python utils/synthetic_data_generator.py
 
-# Crear pesos inicializados del modelo
+# Create initialized model weights
 python create_pretrained_weights.py
 
-# Iniciar servidor Django
+# Start Django server
 python manage.py runserver 8080
 ```
 
-## 🚀 Uso
+### If you want to test a different model
+```bash
+# Option for going back to model's index
+git checkout main
+```
 
-1. **Abrir navegador**: http://127.0.0.1:8080/
+## 🚀 Usage
 
-2. **Subir plano**: Click en "Subir Imagen" y selecciona un plano de planta
+1. **Open browser**: http://127.0.0.1:8080/
 
-3. **Ver resultados**:
-   - Habitaciones detectadas con bounding boxes
-   - Máscaras de segmentación coloreadas
-   - Tabla detallada con áreas en m²
-   - Estadísticas globales
+2. **Upload plan**: Click "Upload Image" and select a floor plan
 
-## 🏷️ Tipos de Habitaciones Soportadas
+3. **View results**:
+   - Detected rooms with bounding boxes
+   - Colored segmentation masks
+   - Detailed table with areas in m²
+   - Global statistics
 
-- 🛏️ Bedroom (Dormitorio)
-- 🍳 Kitchen (Cocina)
-- 🛋️ Living Room (Sala)
-- 🚿 Bathroom (Baño)
-- 🍽️ Dining Room (Comedor)
-- 🚪 Corridor (Pasillo)
-- 🌅 Balcony (Balcón)
-- 📦 Storage (Almacenamiento)
-- 🚗 Garage (Garage)
-- 🧺 Laundry (Lavandería)
-- 💼 Office (Oficina)
-- 🛌 Guest Room (Cuarto de Huéspedes)
-- 🔧 Utility (Utilidad)
-- ❓ Other (Otros)
+## 🏷️ Supported Room Types
 
-## 📂 Estructura del Proyecto
+- 🛏️ Bedroom
+- 🍳 Kitchen
+- 🛋️ Living Room
+- 🚿 Bathroom
+- 🍽️ Dining Room
+- 🚪 Corridor
+- 🌅 Balcony
+- 📦 Storage
+- 🚗 Garage
+- 🧺 Laundry
+- 💼 Office
+- 🛌 Guest Room
+- 🔧 Utility
+- ❓ Other
+
+## 📂 Project Structure
 
 ```
 floorplan-classifier/
 ├── src/
 │   └── models/
-│       └── swin_maskrcnn.py       # Modelo principal
+│       └── swin_maskrcnn.py       # Main model
 ├── utils/
-│   ├── synthetic_data_generator.py # Generador de datos
-│   ├── visualization.py            # Visualización
-│   └── area_calculator.py          # Cálculo de áreas
+│   ├── synthetic_data_generator.py # Data generator
+│   ├── visualization.py            # Visualization
+│   └── area_calculator.py          # Area calculation
 ├── detector/
-│   ├── views.py                    # Lógica Django
-│   └── templates/                  # Templates HTML
+│   ├── views.py                    # Django logic
+│   └── templates/                  # HTML templates
 ├── webapp/
-│   ├── settings.py                 # Configuración
+│   ├── settings.py                 # Configuration
 │   └── urls.py                     # URLs
-├── checkpoints/                    # Pesos del modelo (no incluido)
-├── data/                          # Dataset (no incluido)
-├── create_pretrained_weights.py   # Script para pesos
-└── manage.py                      # Django CLI
+├── checkpoints/                    # Model weights (not included)
+├── data/                           # Dataset (not included)
+├── create_pretrained_weights.py    # Script for weights
+└── manage.py                       # Django CLI
 ```
 
-## 🎓 Entrenar el Modelo (Opcional)
+## 🎓 Train the Model (Optional)
 
 ```bash
-# Entrenamiento rápido (demo)
+# Fast training (demo)
 python train_fast.py
 
-# Entrenamiento completo
+# Full training
 python train.py --epochs 100 --batch-size 4
 ```
 
-## 🔧 Tecnologías
+## 🔧 Technologies
 
 - **Backend**: Django 5.2.8
 - **Deep Learning**: PyTorch 2.9.1
 - **Computer Vision**: OpenCV, Pillow
-- **Visualización**: Matplotlib, Seaborn
+- **Visualization**: Matplotlib, Seaborn
 - **Data Science**: NumPy, Pandas
 
 ## 📊 Dataset
 
-- **Sintético**: 500 planos generados (400 train, 50 val, 50 test)
-- **Formato**: COCO (anotaciones JSON)
-- **Resolución**: 512x512 píxeles
-- **Anotaciones**: Perfectas (sin errores humanos)
+- **Synthetic**: 500 generated floor plans (400 train, 50 val, 50 test)
+- **Format**: COCO (JSON annotations)
+- **Resolution**: 512x512 pixels
+- **Annotations**: Perfect (no human errors)
 
-## 🎯 Métricas del Modelo
+## 🎯 Model Metrics
 
-- **Parámetros**: ~100M
-- **Tamaño**: 138 MB
+- **Parameters**: ~100M
+- **Size**: 138 MB
 - **Input**: 512x512 RGB
-- **Output**: Boxes + Máscaras + Labels + Scores
+- **Output**: Boxes + Masks + Labels + Scores
 
 ## Related Papers
-- **CubiCasa5K:** [«CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis»](https://arxiv.org/abs/1904.01920)
-- **DeiT:** [«Training data-efficient image transformers»](https://arxiv.org/abs/2012.12877)
-- **Swin Transformer:** [«Swin Transformer: Hierarchical Vision Transformer using Shifted Windows»](https://arxiv.org/abs/2103.14030)
-- **Mask R-CNN:** [«Mask R-CNN»](https://arxiv.org/abs/1703.06870)
+- **CubiCasa5K:** [“CubiCasa5K: A Dataset and an Improved Multi-Task Model for Floorplan Image Analysis”](https://arxiv.org/abs/1904.01920)
+- **DeiT:** [“Training data-efficient image transformers”](https://arxiv.org/abs/2012.12877)
+- **Swin Transformer:** [“Swin Transformer: Hierarchical Vision Transformer using Shifted Windows”](https://arxiv.org/abs/2103.14030)
+- **Mask R-CNN:** [“Mask R-CNN”](https://arxiv.org/abs/1703.06870)
 
 ---
-## 📖 Documentación
+## 📖 Documentation
 
-- [PROYECTO_COMPLETO.md](docs/PROYECTO_COMPLETO.md) - Documentación completa en español
-- [EMPEZAR_AQUI.md](docs/EMPEZAR_AQUI.md) - Guía de inicio rápido
-- [INFORME_TECNICO.md](docs/INFORME_TECNICO.md) - Análisis técnico detallado
+- [PROYECTO_COMPLETO.md](docs/PROYECTO_COMPLETO.md) - Full documentation in Spanish
+- [EMPEZAR_AQUI.md](docs/EMPEZAR_AQUI.md) - Quick start guide
+- [INFORME_TECNICO.md](docs/INFORME_TECNICO.md) - Detailed technical report
 
-## 🐛 Problemas Resueltos
+## 🐛 Fixed Issues
 
-- ✅ Compatibilidad CUDA (forzado a CPU)
-- ✅ Error de boolean index en máscaras
-- ✅ Sincronización de arrays en visualización
-- ✅ Manejo correcto de dimensiones (N, 1, H, W)
-- ✅ Filtrado de Background antes de procesamiento
+- ✅ CUDA compatibility (forced to CPU)
+- ✅ Boolean index error in masks
+- ✅ Array synchronization in visualization
+- ✅ Correct handling of dimensions (N, 1, H, W)
+- ✅ Background filtering before processing
 
-## 🚀 Próximas Mejoras
+## 🚀 Planned Improvements
 
-- [ ] Entrenamiento con dataset real (CubiCasa5K)
-- [ ] Optimización para GPU
-- [ ] API REST para integración
-- [ ] Exportación a ONNX/TensorRT
-- [ ] Data augmentation avanzada
-- [ ] Métricas de evaluación (mAP, IoU)
+- [ ] Training with real dataset (CubiCasa5K)
+- [ ] GPU optimization
+- [ ] REST API for integration
+- [ ] Export to ONNX/TensorRT
+- [ ] Advanced data augmentation
+- [ ] Evaluation metrics (mAP, IoU)
 
 ---
 ## 📝 Citation
@@ -186,7 +195,7 @@ If you use this code in your research, please cite:
 }
 ```
 
-## 👤 Autor
+## 👤 Author
 
 **Jorge Cuenca** ([@Jorgecuenca1](https://github.com/Jorgecuenca1))
 
@@ -198,12 +207,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [CubiCasa5K](https://github.com/CubiCasa/CubiCasa5k) for the dataset
 - [Common Objects in Context (COCO)](https://cocodataset.org/)
-- [Swin Transformer Architechture (Microsoft Research)](https://www.microsoft.com/en-us/research/blog/swin-transformer-supports-3-billion-parameter-vision-models-that-can-train-with-higher-resolution-images-for-greater-task-applicability/)
+- [Swin Transformer Architecture (Microsoft Research)](https://www.microsoft.com/en-us/research/blog/swin-transformer-supports-3-billion-parameter-vision-models-that-can-train-with-higher-resolution-images-for-greater-task-applicability/)
 - [Mask R-CNN Framework (Facebook AI Research)](https://github.com/facebookresearch/maskrcnn-benchmark)
 - [OpenCV](https://opencv.org/) for image processing
 - [PyTorch](https://pytorch.org/) for the deep learning framework
 - [MLflow](https://mlflow.org/) for experiment tracking
-
 
 ## 📞 Contact
 
