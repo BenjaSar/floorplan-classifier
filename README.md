@@ -79,6 +79,9 @@ Exterior Door, Window, and more...
 git clone https://github.com/yourusername/floorplan-classifier.git
 cd floorplan-classifier
 
+# Moved to desire model branch
+git checkout unet_plus_plus
+
 # Create conda environment
 conda env create -f environment.yml
 conda activate floorplan_vit
