@@ -91,8 +91,11 @@ The model segments floor plans into 12 semantic classes:
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/floorplan-classifier.git
+git clone https://github.com/BenjaSar/floorplan-classifier.git
 cd floorplan-classifier
+
+# Moved to desire model branch
+git checkout vit_classifier
 
 # Create conda environment
 conda env create -f environment.yml
@@ -114,6 +117,12 @@ pip install -r requirements/base.txt
 
 # Verify
 python -c "import torch; print(torch.cuda.is_available())"
+```
+
+### If you want to test a different model
+```bash
+# Option for going back to model's index
+git checkout main
 ```
 
 ## 📊 Dataset Setup
