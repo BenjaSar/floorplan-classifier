@@ -459,8 +459,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - [CubiCasa5K](https://github.com/CubiCasa/CubiCasa5k) for the dataset
+- [Common Objects in Context (COCO)](https://cocodataset.org/)
 - [Hugging Face Transformers](https://huggingface.co/docs/transformers) for model implementations
 - [Vision Transformer (ViT)](https://arxiv.org/abs/2010.11929)
+- [Swin Transformer Architecture (Microsoft Research)](https://www.microsoft.com/en-us/research/blog/swin-transformer-supports-3-billion-parameter-vision-models-that-can-train-with-higher-resolution-images-for-greater-task-applicability/)
+- [Mask R-CNN Framework (Facebook AI Research)](https://github.com/facebookresearch/maskrcnn-benchmark)
 - [OpenCV](https://opencv.org/) for image processing
 - [PyTorch](https://pytorch.org/) for the deep learning framework
 - [MLflow](https://mlflow.org/) for experiment tracking
